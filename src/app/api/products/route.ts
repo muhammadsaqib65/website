@@ -1,10 +1,19 @@
-import { db } from "@/db";
-import { products } from "@/db/schema";
 import { and, desc, eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
+async function loadDb() {
+  const [{ db }, { products }] = await Promise.all([
+    import("@/db"),
+    import("@/db/schema"),
+  ]);
+
+  return { db, products };
+}
+
 export async function GET() {
+  const { db, products } = await loadDb();
+
   const rows = await db
     .select({
       id: products.id,

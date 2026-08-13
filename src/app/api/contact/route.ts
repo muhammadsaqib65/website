@@ -1,5 +1,3 @@
-import { db } from "@/db";
-import { contactSubmissions } from "@/db/schema";
 import { and, desc, eq, gt, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 
@@ -29,6 +27,15 @@ async function getClientIp() {
   return hdrs.get("x-real-ip") ?? "unknown";
 }
 
+async function loadDb() {
+  const [{ db }, { contactSubmissions }] = await Promise.all([
+    import("@/db"),
+    import("@/db/schema"),
+  ]);
+
+  return { db, contactSubmissions };
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as ContactBody;
@@ -51,6 +58,7 @@ export async function POST(request: Request) {
 
     const ip = await getClientIp();
     const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+    const { db, contactSubmissions } = await loadDb();
 
     const recentCountResult = await db
       .select({ count: sql<number>`count(*)::int` })
@@ -83,6 +91,8 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
+  const { db, contactSubmissions } = await loadDb();
+
   const latest = await db
     .select({ id: contactSubmissions.id, createdAt: contactSubmissions.createdAt })
     .from(contactSubmissions)
